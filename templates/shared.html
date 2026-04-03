@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Portfolio — Avenir</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <main style="max-width:900px;margin:40px auto;padding:0 24px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px;">
+            <div class="brand-icon" style="width:36px;height:36px;">A</div>
+            <div>
+                <h1 style="font-size:24px;">Shared Portfolio</h1>
+                <p class="header-sub" id="shared-info">Loading...</p>
+            </div>
+        </div>
+
+        <div class="summary-cards" style="grid-template-columns:repeat(3,1fr);">
+            <div class="card summary-card">
+                <span class="card-label">Portfolio Value</span>
+                <span class="card-value" id="s-value">--</span>
+            </div>
+            <div class="card summary-card">
+                <span class="card-label">Total P&L</span>
+                <span class="card-value" id="s-pnl">--</span>
+            </div>
+            <div class="card summary-card">
+                <span class="card-label">Holdings</span>
+                <span class="card-value" id="s-count">--</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Holdings</h3>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Asset</th><th>Qty</th><th>Current Price</th><th>Value</th><th>P&L</th></tr>
+                    </thead>
+                    <tbody id="s-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <p style="text-align:center;color:var(--text-muted);margin-top:24px;font-size:13px;">
+            Powered by Avenir Crypto Dashboard
+        </p>
+    </main>
+    <script>
+        const shareId = "{{ share_id }}";
+        const fmt = {
+            usd: (n) => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n),
+            pct: (n) => (n>=0?"+":"")+n.toFixed(2)+"%",
+            price: (n) => n>=1 ? fmt.usd(n) : "$"+n.toFixed(6),
+        };
+        fetch(`/api/shared/${shareId}`).then(r=>r.json()).then(data=>{
+            const {holdings,summary,created_at} = data;
+            document.getElementById("s-value").textContent = fmt.usd(summary.total_value||0);
+            document.getElementById("s-pnl").textContent = fmt.usd(summary.total_pnl||0);
+            document.getElementById("s-pnl").className = "card-value "+(summary.total_pnl>=0?"change-positive":"change-negative");
+            document.getElementById("s-count").textContent = holdings.length;
+            document.getElementById("shared-info").textContent = `Shared on ${new Date(created_at).toLocaleDateString()}`;
+            document.getElementById("s-table").innerHTML = holdings.map(h=>`
+                <tr>
+                    <td><strong>${h.symbol.toUpperCase()}</strong></td>
+                    <td>${h.quantity.toFixed(4)}</td>
+                    <td>${fmt.price(h.current_price)}</td>
+                    <td>${fmt.usd(h.current_value)}</td>
+                    <td class="${h.pnl>=0?'change-positive':'change-negative'}">${fmt.usd(h.pnl)} (${fmt.pct(h.pnl_pct)})</td>
+                </tr>
+            `).join("");
+        });
+    </script>
+</body>
+</html>
